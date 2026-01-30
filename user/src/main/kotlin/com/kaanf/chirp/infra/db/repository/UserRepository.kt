@@ -1,0 +1,10 @@
+package com.kaanf.chirp.infra.db.repository
+
+import com.kaanf.chirp.infra.db.entity.UserEntity
+import com.kaanf.chirp.domain.model.UserId
+import org.springframework.data.jpa.repository.JpaRepository
+
+interface UserRepository: JpaRepository<UserEntity, UserId> {
+    fun findByEmail(email: String): UserEntity?
+    fun existsByEmailOrUsername(email: String, username: String): Boolean
+}

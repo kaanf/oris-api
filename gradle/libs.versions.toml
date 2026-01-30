@@ -34,7 +34,7 @@ jwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jwt" }
 jwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jwt" }
 
 # Jackson
-jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
 
 # Kotlin
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
