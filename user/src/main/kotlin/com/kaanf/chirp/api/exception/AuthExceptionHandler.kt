@@ -3,6 +3,8 @@ package com.kaanf.chirp.api.exception
 import com.kaanf.chirp.domain.exception.EmailNotVerifiedException
 import com.kaanf.chirp.domain.exception.InvalidCredentialsException
 import com.kaanf.chirp.domain.exception.InvalidTokenException
+import com.kaanf.chirp.domain.exception.RateLimitException
+import com.kaanf.chirp.domain.exception.SamePasswordException
 import com.kaanf.chirp.domain.exception.UserAlreadyExistsException
 import com.kaanf.chirp.domain.exception.UserNotFoundException
 import org.springframework.http.HttpStatus
@@ -34,10 +36,20 @@ class AuthExceptionHandler {
     fun onInvalidToken(e: InvalidTokenException) =
         mapOf("code" to "INVALID_TOKEN", "message" to e.message)
 
+    @ExceptionHandler(RateLimitException::class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    fun onRateLimitExceeded(e: RateLimitException) =
+        mapOf("code" to "RATE_LIMIT_EXCEEDED", "message" to e.message)
+
     @ExceptionHandler(EmailNotVerifiedException::class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     fun onEmailNotVerified(e: EmailNotVerifiedException) =
         mapOf("code" to "EMAIL_NOT_VERIFIED", "message" to e.message)
+
+    @ExceptionHandler(SamePasswordException::class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    fun onSamePassword(e: SamePasswordException) =
+        mapOf("code" to "SAME_PASSWORD", "message" to e.message)
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun onValidationException(e: MethodArgumentNotValidException): ResponseEntity<Map<String, Any>> {

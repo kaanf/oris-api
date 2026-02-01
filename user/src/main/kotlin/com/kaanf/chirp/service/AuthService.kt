@@ -1,4 +1,4 @@
-package com.kaanf.chirp.service.auth
+package com.kaanf.chirp.service
 
 import com.kaanf.chirp.domain.exception.EmailNotVerifiedException
 import com.kaanf.chirp.domain.exception.InvalidCredentialsException

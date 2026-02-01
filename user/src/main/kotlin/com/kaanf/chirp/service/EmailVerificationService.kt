@@ -1,4 +1,4 @@
-package com.kaanf.chirp.service.auth
+package com.kaanf.chirp.service
 
 import com.kaanf.chirp.domain.exception.InvalidTokenException
 import com.kaanf.chirp.domain.exception.UserNotFoundException
@@ -8,7 +8,6 @@ import com.kaanf.chirp.infra.db.mapper.toEmailVerificationToken
 import com.kaanf.chirp.infra.db.mapper.toUser
 import com.kaanf.chirp.infra.db.repository.EmailVerificationTokenRepository
 import com.kaanf.chirp.infra.db.repository.UserRepository
-import com.zaxxer.hikari.util.ClockSource.currentTime
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
@@ -22,24 +21,19 @@ class EmailVerificationService(
     private val userRepository: UserRepository,
     @param:Value("\${chirp.email.verification.expiry-hours}") private val expiryHours: Long
 ) {
+    fun resendVerificationEmail(email: String) {
+        // TODO: Trigger resend.
+    }
+
     @Transactional
     fun createVerificationToken(email: String): EmailVerificationToken {
         val userEntity = userRepository.findByEmail(email)
             ?: throw UserNotFoundException()
 
-        val existingTokens = emailVerificationTokenRepository.findByUserAndUsedAtIsNull(userEntity)
-
-        val currentTime = Instant.now()
-        val usedTokens = existingTokens.map {
-            it.apply {
-                this.usedAt = currentTime
-            }
-        }
-
-        emailVerificationTokenRepository.saveAll(usedTokens)
+        emailVerificationTokenRepository.invalidateActiveTokensForUser(userEntity)
 
         val token = EmailVerificationTokenEntity(
-            expiresAt = currentTime.plus(expiryHours, ChronoUnit.HOURS),
+            expiresAt = Instant.now().plus(expiryHours, ChronoUnit.HOURS),
             user = userEntity,
         )
 

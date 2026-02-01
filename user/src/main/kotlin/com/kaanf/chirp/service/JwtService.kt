@@ -1,4 +1,4 @@
-package com.kaanf.chirp.service.auth
+package com.kaanf.chirp.service
 
 import com.kaanf.chirp.domain.exception.InvalidTokenException
 import com.kaanf.chirp.domain.model.UserId

@@ -2,6 +2,15 @@ spring:
   application:
     name: chirp
 
+  data:
+    redis:
+      host: "redis-19281.c293.eu-central-1-1.ec2.cloud.redislabs.com"
+      password: ${REDIS_PASSWORD}
+      username: "default"
+      port: 19281
+      connect-timeout: 5000ms
+      timeout: 2000ms
+
   datasource:
     url: jdbc:postgresql://aws-1-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require
     username: postgres.mpprwdhncynofnragmoc
@@ -39,3 +48,12 @@ chirp:
   email:
     verification:
       expiry-hours: 24
+    reset-password:
+      expiry-minutes: 30
+
+nginx:
+  trusted-ips:
+    - "127.0.0.1" # nginx on same machine.
+    - "::1" # IPv6 localhost.
+    - "172.17.0.0/16" # nginx container IP when using Docker.
+    - "10.0.0.5/32" # nginx server IP (if separate machine)
