@@ -7,6 +7,7 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.Index
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
@@ -17,6 +18,7 @@ import java.time.Instant
 @Table(
     name = "email_verification_tokens",
     schema = "user_service",
+    indexes = [Index(name = "idx_email_verification_token_token", columnList = "token")]
 )
 class EmailVerificationTokenEntity(
     @Id
