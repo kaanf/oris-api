@@ -1,0 +1,49 @@
+sequenceDiagram
+  autonumber
+  participant Client
+  participant AuthController
+  participant AuthService
+  participant UserRepo as UserRepository
+  participant PasswordEncoder
+  participant EmailSvc as EmailVerificationService
+  participant EmailTokenRepo as EmailVerificationTokenRepository
+  participant JwtService
+  participant RefreshRepo as RefreshTokenRepository
+
+  rect rgb(245, 245, 255)
+  Note over Client,AuthController: Register Flow
+  Client->>AuthController: POST /api/auth/register (email, username, password)
+  AuthController->>AuthService: register(...)
+  AuthService->>UserRepo: existsByEmailOrUsername
+  Note over AuthService: Eğer kullanıcı varsa hata döner (409).
+  AuthService->>PasswordEncoder: encode(password)
+  AuthService->>UserRepo: saveAndFlush(new user)
+  AuthService->>EmailSvc: createVerificationToken(email)
+  EmailSvc->>EmailTokenRepo: save(token)
+  AuthService-->>AuthController: UserDto
+  AuthController-->>Client: 200 + user bilgisi
+  end
+
+  rect rgb(245, 255, 245)
+  Note over Client,AuthController: Login Flow
+  Client->>AuthController: POST /api/auth/login (email, password)
+  AuthController->>AuthService: login(...)
+  AuthService->>UserRepo: findByEmail
+  AuthService->>PasswordEncoder: matches(password)
+  Note over AuthService: Email doğrulanmadıysa 401 döner.
+  AuthService->>JwtService: generateAccessToken + generateRefreshToken
+  AuthService->>RefreshRepo: save(hashed refresh token)
+  AuthService-->>AuthController: AuthenticatedUserDto
+  AuthController-->>Client: 200 + access/refresh token
+  end
+
+  rect rgb(255, 245, 245)
+  Note over Client,AuthController: Email Verification Flow
+  Client->>AuthController: GET /api/auth/verify?token=...
+  AuthController->>EmailSvc: verifyEmail(token)
+  EmailSvc->>EmailTokenRepo: findByToken
+  Note over EmailSvc: Token kullanılmamış ve süresi geçmemiş olmalı.
+  EmailSvc->>EmailTokenRepo: save(usedAt = now)
+  EmailSvc->>UserRepo: save(hasVerifiedEmail = true)
+  AuthController-->>Client: 200 (verified)
+  end

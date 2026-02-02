@@ -1,0 +1,26 @@
+sequenceDiagram
+  autonumber
+  participant Client
+  participant AuthController
+  participant IPRateLimitInterceptor
+  participant IPResolver
+  participant IPRateLimiter
+  participant Redis
+
+  Client->>AuthController: HTTP request to /api/**
+  AuthController->>IPRateLimitInterceptor: preHandle
+  IPRateLimitInterceptor->>IPResolver: getClientIp(request)
+  IPResolver-->>IPRateLimitInterceptor: client IP
+  IPRateLimitInterceptor->>IPRateLimiter: withIpRateLimit(ip, window, max)
+  IPRateLimiter->>Redis: EVAL ip_rate_limit.lua (key, max, ttl)
+
+  alt Allowed
+    Redis-->>IPRateLimiter: { count, ttl }
+    IPRateLimiter-->>IPRateLimitInterceptor: proceed
+    IPRateLimitInterceptor-->>AuthController: allow
+    AuthController-->>Client: 200 OK (controller response)
+  else Blocked
+    Redis-->>IPRateLimiter: { count, ttl }
+    IPRateLimiter-->>IPRateLimitInterceptor: throw RateLimitException(ttl)
+    IPRateLimitInterceptor-->>Client: 429 Too Many Requests
+  end
