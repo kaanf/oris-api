@@ -11,11 +11,13 @@ import com.kaanf.chirp.api.dto.ResetPasswordRequest
 import com.kaanf.chirp.api.dto.UserDto
 import com.kaanf.chirp.api.mapper.toAuthenticatedUserDto
 import com.kaanf.chirp.api.mapper.toUserDto
+import com.kaanf.chirp.api.util.requestUserId
 import com.kaanf.chirp.infra.cache.EmailRateLimiter
 import com.kaanf.chirp.service.AuthService
 import com.kaanf.chirp.service.EmailVerificationService
 import com.kaanf.chirp.service.PasswordResetService
 import jakarta.validation.Valid
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -95,6 +97,10 @@ class AuthController(
 
     @PostMapping("/change-password")
     fun changePassword(@Valid @RequestBody request: ChangePasswordRequest) {
-        // TODO: Extract request user ID and call service.
+        passwordResetService.changePassword(
+            userId = requestUserId,
+            oldPassword = request.oldPassword,
+            newPassword = request.newPassword
+        )
     }
 }

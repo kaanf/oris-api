@@ -5,6 +5,7 @@ import com.kaanf.chirp.domain.exception.InvalidCredentialsException
 import com.kaanf.chirp.domain.exception.InvalidTokenException
 import com.kaanf.chirp.domain.exception.RateLimitException
 import com.kaanf.chirp.domain.exception.SamePasswordException
+import com.kaanf.chirp.domain.exception.UnauthorizedException
 import com.kaanf.chirp.domain.exception.UserAlreadyExistsException
 import com.kaanf.chirp.domain.exception.UserNotFoundException
 import org.springframework.http.HttpStatus
@@ -25,6 +26,11 @@ class AuthExceptionHandler {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     fun onUserNotFound(e: UserNotFoundException) =
         mapOf("code" to "USER_NOT_FOUND", "message" to e.message)
+
+    @ExceptionHandler(UnauthorizedException::class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    fun onUnauthorized(e: UnauthorizedException) =
+        mapOf("code" to "UNAUTHORIZED", "message" to e.message)
 
     @ExceptionHandler(InvalidCredentialsException::class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
