@@ -4,7 +4,7 @@ import com.kaanf.chirp.domain.exception.InvalidCredentialsException
 import com.kaanf.chirp.domain.exception.InvalidTokenException
 import com.kaanf.chirp.domain.exception.SamePasswordException
 import com.kaanf.chirp.domain.exception.UserNotFoundException
-import com.kaanf.chirp.domain.model.UserId
+import com.kaanf.chirp.domain.type.UserId
 import com.kaanf.chirp.infra.db.entity.PasswordResetTokenEntity
 import com.kaanf.chirp.infra.db.repository.PasswordResetTokenRepository
 import com.kaanf.chirp.infra.db.repository.RefreshTokenRepository

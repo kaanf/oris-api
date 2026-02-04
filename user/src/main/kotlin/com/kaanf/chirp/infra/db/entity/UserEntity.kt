@@ -1,6 +1,6 @@
 package com.kaanf.chirp.infra.db.entity
 
-import com.kaanf.chirp.domain.model.UserId
+import com.kaanf.chirp.domain.type.UserId
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue

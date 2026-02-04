@@ -1,7 +1,7 @@
 package com.kaanf.chirp.infra.db.repository
 
 import com.kaanf.chirp.infra.db.entity.UserEntity
-import com.kaanf.chirp.domain.model.UserId
+import com.kaanf.chirp.domain.type.UserId
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface UserRepository: JpaRepository<UserEntity, UserId> {

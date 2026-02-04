@@ -1,5 +1,6 @@
 package com.kaanf.chirp.service
 
+import com.kaanf.chirp.domain.event.user.UserEvent
 import com.kaanf.chirp.domain.exception.InvalidTokenException
 import com.kaanf.chirp.domain.exception.UserNotFoundException
 import com.kaanf.chirp.domain.model.EmailVerificationToken
@@ -8,6 +9,7 @@ import com.kaanf.chirp.infra.db.mapper.toEmailVerificationToken
 import com.kaanf.chirp.infra.db.mapper.toUser
 import com.kaanf.chirp.infra.db.repository.EmailVerificationTokenRepository
 import com.kaanf.chirp.infra.db.repository.UserRepository
+import com.kaanf.chirp.infra.message_queue.EventPublisher
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
@@ -19,10 +21,25 @@ import java.time.temporal.ChronoUnit
 class EmailVerificationService(
     private val emailVerificationTokenRepository: EmailVerificationTokenRepository,
     private val userRepository: UserRepository,
-    @param:Value("\${chirp.email.verification.expiry-hours}") private val expiryHours: Long
+    @param:Value("\${chirp.email.verification.expiry-hours}") private val expiryHours: Long,
+    private val eventPublisher: EventPublisher
 ) {
+    @Transactional
     fun resendVerificationEmail(email: String) {
-        // TODO: Trigger resend.
+        val token = createVerificationToken(email)
+
+        if (token.user.hasVerifiedEmail) {
+            return
+        }
+
+        eventPublisher.publish(
+            event = UserEvent.RequestResendVerification(
+                userId = token.user.id,
+                email = token.user.email,
+                username = token.user.username,
+                verificationToken = token.token
+            )
+        )
     }
 
     @Transactional

@@ -1,6 +1,6 @@
 package com.kaanf.chirp.api.dto
 
-import com.kaanf.chirp.domain.model.UserId
+import com.kaanf.chirp.domain.type.UserId
 
 data class UserDto(
     val id: UserId,
