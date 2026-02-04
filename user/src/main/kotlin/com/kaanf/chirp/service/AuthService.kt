@@ -1,5 +1,6 @@
 package com.kaanf.chirp.service
 
+import com.kaanf.chirp.domain.event.user.UserEvent
 import com.kaanf.chirp.domain.exception.EmailNotVerifiedException
 import com.kaanf.chirp.domain.exception.InvalidCredentialsException
 import com.kaanf.chirp.domain.exception.InvalidTokenException
@@ -7,12 +8,13 @@ import com.kaanf.chirp.domain.exception.UserAlreadyExistsException
 import com.kaanf.chirp.domain.exception.UserNotFoundException
 import com.kaanf.chirp.domain.model.AuthenticatedUser
 import com.kaanf.chirp.domain.model.User
-import com.kaanf.chirp.domain.model.UserId
+import com.kaanf.chirp.domain.type.UserId
 import com.kaanf.chirp.infra.db.entity.RefreshTokenEntity
 import com.kaanf.chirp.infra.db.entity.UserEntity
 import com.kaanf.chirp.infra.db.mapper.toUser
 import com.kaanf.chirp.infra.db.repository.RefreshTokenRepository
 import com.kaanf.chirp.infra.db.repository.UserRepository
+import com.kaanf.chirp.infra.message_queue.EventPublisher
 import com.kaanf.chirp.infra.security.PasswordEncoder
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -27,7 +29,8 @@ class AuthService(
     private val passwordEncoder: PasswordEncoder,
     private val jwtService: JwtService,
     private val refreshTokenRepository: RefreshTokenRepository,
-    private val emailVerificationService: EmailVerificationService
+    private val emailVerificationService: EmailVerificationService,
+    private val eventPublisher: EventPublisher
 ) {
     @Transactional
     fun register(email: String, username: String, password: String): User {
@@ -51,6 +54,15 @@ class AuthService(
         ).toUser()
 
         val token = emailVerificationService.createVerificationToken(trimmedEmail)
+
+        eventPublisher.publish(
+            event = UserEvent.Created(
+                userId = savedUser.id,
+                email = savedUser.email,
+                username = savedUser.username,
+                verificationToken = token.token
+            )
+        )
 
         return savedUser
     }

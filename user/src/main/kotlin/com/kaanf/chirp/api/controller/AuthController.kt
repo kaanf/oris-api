@@ -69,9 +69,7 @@ class AuthController(
     @PostMapping("/resend-verification")
     @IPRateLimit(requests = 10, duration = 1L, unit = TimeUnit.HOURS)
     fun resendVerification(@Valid @RequestBody request: EmailRequest) {
-        emailRateLimiter.withRateLimit(
-            email = request.email
-        ) {
+        emailRateLimiter.withRateLimit(email = request.email) {
             emailVerificationService.resendVerificationEmail(request.email)
         }
     }
