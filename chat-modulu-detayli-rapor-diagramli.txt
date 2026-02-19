@@ -1,0 +1,437 @@
+CHIRP CHAT MODULU DIYAGRAMLI AKTARIM RAPORU
+Hazirlayan: Codex
+Tarih: 13 Subat 2026
+Kod Snapshot: /Users/kaan/Downloads/chirp
+
+====================================================================
+0) RAPORUN AMACI
+====================================================================
+Bu rapor, Chirp projesindeki mevcut chat modulunu backend'e yeni
+baslayan birinin anlayacagi seviyede "gorsel akis + detay aciklama"
+formatinda aktarir.
+
+Kritik durum ozeti:
+- Chat modulu su an "temel altyapi" asamasinda.
+- Domain model + JPA entity + repository katmani var.
+- Controller/service/DTO/realtime katmanlari henuz yok.
+
+Bu nedenle rapor iki seyi birlikte anlatir:
+1) Bugun kodda ne var?
+2) Bu kod hangi akislari calistirir, neler henuz eksik?
+
+====================================================================
+1) MODUL KONUMU VE BAGIMLILIK DIYAGRAMI
+====================================================================
+Kaynaklar:
+- settings.gradle.kts:14-18
+- app/build.gradle.kts:10-13
+- chat/build.gradle.kts:16-20
+
+DIYAGRAM 1 - Monorepo Modulleri ve Baglanti
+
++-------------------- chirp (root) --------------------+
+|                                                      |
+|  +---------+    +------+    +--------------+         |
+|  | common  |<---| chat |<---| app (runtime)|         |
+|  +---------+    +------+    +--------------+         |
+|      ^                      /      |      \          |
+|      |                     /       |       \         |
+|  +---------+       +-----------+  +-------------+    |
+|  |  user   |------>| app bagim |  | notification|    |
+|  +---------+       +-----------+  +-------------+    |
+|                                                      |
++------------------------------------------------------+
+
+Anlam:
+- `chat` modulu, `common` tiplerine bagli.
+- `app`, `chat` dahil tum modulleri topluyor.
+- Bu sayede chat icindeki Spring bile$enleri app ile birlikte calisabilir.
+
+====================================================================
+2) CHAT MODULUNUN DOSYA YAPISI
+====================================================================
+Mevcut kaynak agaci:
+
+chat/src/main/kotlin/com/kaanf/chirp/domain/model
+- Chat.kt
+- ChatMessage.kt
+- ChatParticipant.kt
+
+chat/src/main/kotlin/com/kaanf/chirp/infra/db/entity
+- ChatEntity.kt
+- ChatMessageEntity.kt
+- ChatParticipantEntity.kt
+
+chat/src/main/kotlin/com/kaanf/chirp/infra/db/repository
+- ChatRepository.kt
+- ChatParticipantRepository.kt
+
+common/src/main/kotlin/com/kaanf/chirp/domain/type
+- ChatId.kt
+- ChatMessageId.kt
+- UserId.kt
+
+Yorum:
+- API yuzeyi (controller) yok.
+- Is kurali katmani (service/use-case) yok.
+- Bu, modulu su an "persistence-first" yapar.
+
+====================================================================
+3) TEMEL KIMLIK TIPLERI (UUID)
+====================================================================
+Kaynaklar:
+- common/.../ChatId.kt:5
+- common/.../ChatMessageId.kt:5
+- common/.../UserId.kt:5
+
+`ChatId`, `ChatMessageId`, `UserId` -> hepsi UUID typealias.
+
+Neden mantikli?
+- Dagitik ortamlarda id carpismasi riski dusuk.
+- Tahmin edilmesi zor id uretimi.
+- Kod okunurlugu artar (UUID yerine ChatId gibi alan anlami gorunur).
+
+====================================================================
+4) DOMAIN MODEL DIYAGRAMI
+====================================================================
+Kaynaklar:
+- chat/.../domain/model/Chat.kt:6-12
+- chat/.../domain/model/ChatMessage.kt:8-13
+- chat/.../domain/model/ChatParticipant.kt:5-9
+
+DIYAGRAM 2 - Domain Sinif Iliskisi
+
++----------------------------+
+| Chat                       |
+|----------------------------|
+| id: ChatId                 |
+| participants: Set<...>     |
+| lastMessage: ChatMessage?  |
+| creator: ChatParticipant   |
+| lastActivityAt: Instant    |
+| createdAt: Instant         |
++-------------+--------------+
+              | 1
+              | has many
+              v
++----------------------------+
+| ChatParticipant            |
+|----------------------------|
+| userId: UserId             |
+| username: String           |
+| email: String              |
+| profilePictureUrl: String? |
++----------------------------+
+
++----------------------------+
+| ChatMessage                |
+|----------------------------|
+| id: ChatMessageId          |
+| chatId: ChatId             |
+| sender: ChatParticipant    |
+| content: String            |
+| createdAt: Instant         |
++----------------------------+
+
+Onemli nokta:
+- Domain modelde `lastMessage` ve `lastActivityAt` var.
+- Bu alanlar entity modelde birebir yok.
+- Yani domain hedefi biraz daha ileride, persistence modeli geride.
+
+====================================================================
+5) VERI TABANI (ENTITY) DIYAGRAMI
+====================================================================
+Kaynaklar:
+- chat/.../entity/ChatParticipantEntity.kt:12-32
+- chat/.../entity/ChatEntity.kt:18-52
+- chat/.../entity/ChatMessageEntity.kt:18-59
+
+DIYAGRAM 3 - Tablo ve Iliski Haritasi
+
+Schema: chat_service
+
++--------------------------------------------------+
+| chat_participants                                |
+|--------------------------------------------------|
+| PK user_id (UUID)                                |
+| username (unique, not null, idx)                 |
+| email    (unique, not null, idx)                 |
+| profile_picture_url (nullable)                   |
+| created_at                                       |
++-----------------------------+--------------------+
+                              ^
+                              | FK creator_id
++-----------------------------+--------------------+
+| chats                                            |
+|--------------------------------------------------|
+| PK id (UUID)                                     |
+| creator_id -> chat_participants.user_id          |
+| created_at                                       |
++-----------------------------+--------------------+
+                              |
+                              | M:N via cross ref
+                              v
++--------------------------------------------------+
+| chat_participants_cross_ref                      |
+|--------------------------------------------------|
+| chat_id -> chats.id                              |
+| user_id -> chat_participants.user_id             |
+| unique idx(chat_id,user_id)                      |
+| unique idx(user_id,chat_id)                      |
++--------------------------------------------------+
+
++--------------------------------------------------+
+| chat_messages                                    |
+|--------------------------------------------------|
+| PK id (UUID)                                     |
+| content (not null)                               |
+| chat_id -> chats.id                              |
+| sender_id -> chat_participants.user_id           |
+| created_at                                       |
+| idx(chat_id, created_at DESC)                    |
++--------------------------------------------------+
+
+Neden bu model guzel?
+- M:N katilimci modelini dogru kuruyor.
+- Mesaj gecmisi sorgusu icin dogru index var.
+- Chat'e giris cikis sorgulari icin join table indexleri iyi.
+
+Teknik borc adayi:
+- ChatMessageEntity yaziminda `sender_id` insert akisinin netligi zayif
+  (sender relation insertable/updatable false).
+
+====================================================================
+6) REPOSITORY DIYAGRAMI VE YETKI MANTIGI
+====================================================================
+Kaynaklar:
+- chat/.../repository/ChatRepository.kt:9-31
+- chat/.../repository/ChatParticipantRepository.kt:8-16
+
+DIYAGRAM 4 - `findChatById(id, userId)` Yetki Akisi
+
+[Controller/Service (gelecekte)]
+            |
+            | chatId + requestUserId
+            v
++--------------------------------------------+
+| ChatRepository.findChatById(id, userId)    |
++--------------------------------------------+
+            |
+            | SQL:
+            | WHERE c.id = :id
+            | AND EXISTS(participant.userId = :userId)
+            v
++--------------------------------------------+
+| Sonuc                                       |
+| - ChatEntity doner => kullanici katilimci  |
+| - null doner     => kullanici katilimci degil |
++--------------------------------------------+
+
+Neden iyi?
+- Yetki filtresi SQL katmanina inmis oluyor.
+- Sonradan service'de ekstra if kontrolu unutulsa bile temel koruma var.
+
+DIYAGRAM 5 - `findAllByUserId(userId)` Liste Akisi
+
+requestUserId
+    |
+    v
++-------------------------------------------+
+| findAllByUserId(userId)                   |
+| WHERE EXISTS(participant.userId=userId)   |
+| LEFT JOIN FETCH participants + creator    |
++-------------------------------------------+
+    |
+    v
+Chat listesi (kullaniciya ait odalar)
+
+Not:
+- ORDER BY yok. Liste sirasi sabit degil.
+
+DIYAGRAM 6 - Participant Arama Akisi
+
+query input
+   |
+   | (service tarafi lowercase etmelidir)
+   v
+findByEmailOrUsername(query)
+   |
+   | LOWER(username) = :query OR LOWER(email) = :query
+   v
+ChatParticipantEntity?
+
+Risk:
+- Query lowercase edilmezse beklenmeyen kacirma olabilir.
+
+====================================================================
+7) GUVENLIK DIYAGRAMI (CHAT ICIN NEDEN ONEMLI)
+====================================================================
+Kaynaklar:
+- app/.../security/SecurityConfig.kt:23-35
+- user/.../api/config/JwtAuthFilter.kt
+- user/.../api/util/RequestUserId.kt:7-9
+
+DIYAGRAM 7 - JWT -> requestUserId -> Chat Query Akisi
+
+HTTP Request (Authorization: Bearer ...)
+                  |
+                  v
++----------------------------------+
+| JwtAuthFilter                    |
+| token validse principal = UserId |
++----------------------------------+
+                  |
+                  v
++----------------------------------+
+| SecurityContext                  |
++----------------------------------+
+                  |
+                  v
++----------------------------------+
+| requestUserId util               |
++----------------------------------+
+                  |
+                  v
++-----------------------------------------------+
+| ChatRepository.findChatById(chatId, userId)   |
+| veya findAllByUserId(userId)                  |
++-----------------------------------------------+
+
+Sonuc:
+- Chat endpointleri eklendiginde kullanici kimligi cekme problemi yok.
+- Repository sorgulari bu kimlik akisini destekliyor.
+
+====================================================================
+8) "SU AN NE VAR / NE YOK" DIYAGRAMI
+====================================================================
+DIYAGRAM 8 - Katman Tamamlanma Durumu
+
++------------------------------+----------------------+
+| Katman                       | Durum                |
++------------------------------+----------------------+
+| Domain model                 | VAR                  |
+| JPA entity                   | VAR                  |
+| Repository                   | VAR                  |
+| Service / Use-case           | YOK                  |
+| Controller (REST)            | YOK                  |
+| DTO / Mapper                 | YOK                  |
+| Mesaj gonderme akisi         | YOK                  |
+| Mesaj listeleme endpointi    | YOK                  |
+| WebSocket/SSE realtime       | YOK                  |
+| Test kapsami (chat odakli)   | COK SINIRLI/YOK      |
++------------------------------+----------------------+
+
+Yani:
+- Altyapi mevcut
+- Uygulama akis katmani henuz insa edilmemis
+
+====================================================================
+9) OLAY BAZLI MIMARI ILE ILISKISI
+====================================================================
+Kaynaklar:
+- common/.../infra/message_queue/*.kt
+- notification/.../NotificationUserEventListener.kt
+
+Chat modulu su an event publish/consume yapmiyor.
+Ama projede RabbitMQ altyapisi var.
+
+DIYAGRAM 9 - Genel Event Altyapisi (chat'e aday)
+
+User Service Event -> EventPublisher -> RabbitMQ Exchange -> Queue -> Notification Listener
+
+Chat future senaryosu:
+- "message.created" gibi eventler ile notification/realtime tetiklenebilir.
+
+====================================================================
+10) YENI BASLAYAN ICIN ADIM ADIM ORNEK SENARYO
+====================================================================
+SENARYO A - "Kullanici kendi chat listesini aciyor"
+
+1) Endpoint'e istek gelir (gelecekte eklenecek)
+2) requestUserId cekilir
+3) ChatRepository.findAllByUserId(requestUserId)
+4) ChatEntity listesi doner
+5) DTO maplenir ve response verilir
+
+SENARYO B - "Kullanici belirli chat detayini aciyor"
+
+1) chatId path'ten gelir
+2) requestUserId cekilir
+3) findChatById(chatId, requestUserId)
+4) donen sonuc:
+   - null: kullanici odada degil
+   - entity: kullanici odada
+
+SENARYO C - "Mesaj gonderme" (henuz yok)
+
+Beklenen hedef akis:
+1) Kullanici odanin participant'i mi kontrol et
+2) Mesaj entity olustur
+3) sender_id, chat_id, content yaz
+4) Son aktivite bilgisini guncelle
+5) Realtime/event dagitim yap
+
+====================================================================
+11) HEDEF MIMARI DIYAGRAMI (ONERILEN)
+====================================================================
+DIYAGRAM 10 - Tamamlanmis Chat Mimari Akisi
+
+HTTP API
+  |
+  v
++--------------------+
+| ChatController     |
++--------------------+
+  |
+  v
++--------------------+
+| ChatService        |
+| - createChat       |
+| - listChats        |
+| - sendMessage      |
+| - listMessages     |
++--------------------+
+  |
+  v
++--------------------+      +---------------------+
+| Repositories       |----->| PostgreSQL          |
+| Chat / Message /   |      | chat_service schema |
+| Participant        |      +---------------------+
++--------------------+
+  |
+  v
++--------------------+
+| EventPublisher     |
++--------------------+
+  |
+  v
++--------------------+
+| RabbitMQ           |
++--------------------+
+  |
+  +----> Notification
+  +----> Realtime Gateway (opsiyonel)
+
+====================================================================
+12) AKTARIM ICIN HAZIR KONU$MA METNI (KISA)
+====================================================================
+"Chat modulunde once veri modeli ve DB tarafi cikarilmis.
+Uc temel entity var: participant, chat ve message.
+Chat ile participant iliskisi many-to-many ile join table'da tutuluyor.
+Repository katmaninda en kritik nokta, yetki kontrolunun SQL seviyesinde
+EXISTS ile yapilmasi. Bu guvenli bir temel.
+Ama su an service/controller/realtime gibi ust katmanlar yok.
+Yani bugun elimizde calisan temel altyapi var; bir sonraki adim bu altyapi
+uzerine uygulama akislarini insa etmek."
+
+====================================================================
+13) RAPOR SONU - DOGRULUK NOTU
+====================================================================
+Bu rapor 13 Subat 2026 tarihli kod durumuna gore hazirlandi.
+Kod degistikce asagidaki noktalar yeniden kontrol edilmeli:
+- ChatMessageEntity yazim semasi (sender_id)
+- Domain-entity uyumu (lastMessage/lastActivityAt)
+- Chat listesi siralama stratejisi
+- Chat odakli testler
+
+Rapor sonu.

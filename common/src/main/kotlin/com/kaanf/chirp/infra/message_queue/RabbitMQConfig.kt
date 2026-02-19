@@ -1,6 +1,7 @@
 package com.kaanf.chirp.infra.message_queue
 
 import com.kaanf.chirp.domain.event.ChirpEvent
+import com.kaanf.chirp.domain.event.chat.ChatEventConstants
 import com.kaanf.chirp.domain.event.user.UserEventConstants
 import org.springframework.amqp.core.Binding
 import org.springframework.amqp.core.BindingBuilder
@@ -54,8 +55,18 @@ class RabbitMQConfig {
     )
 
     @Bean
+    fun chatExchange() = TopicExchange(
+        ChatEventConstants.CHAT_EXCHANGE, true, false
+    )
+
+    @Bean
     fun notificationUserEventsQueue() = Queue(
         MessageQueues.NOTIFICATION_USER_EVENTS, true
+    )
+
+    @Bean
+    fun chatUserEventsQueue() = Queue(
+        MessageQueues.CHAT_USER_EVENTS, true
     )
 
     @Bean
@@ -65,6 +76,17 @@ class RabbitMQConfig {
     ): Binding {
         return BindingBuilder
             .bind(notificationUserEventsQueue)
+            .to(userExchange)
+            .with("user.*")
+    }
+
+    @Bean
+    fun chatUserEventsBinding(
+        chatUserEventsQueue: Queue,
+        userExchange: TopicExchange
+    ): Binding {
+        return BindingBuilder
+            .bind(chatUserEventsQueue)
             .to(userExchange)
             .with("user.*")
     }
