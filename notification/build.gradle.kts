@@ -1,6 +1,6 @@
 plugins {
     id("java-library")
-    id("chirp.spring-boot-service")
+    id("oris.spring-boot-service")
     kotlin("plugin.jpa")
 }
 
