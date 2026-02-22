@@ -1,6 +1,6 @@
 plugins {
     id("java-library")
-    id("chirp.kotlin-common")
+    id("oris.kotlin-common")
 }
 
 group = "com.kaanf"

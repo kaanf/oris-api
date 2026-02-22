@@ -1,10 +1,10 @@
 plugins {
-	id("chirp.spring-boot-app")
+	id("oris.spring-boot-app")
 }
 
 group = "com.kaanf"
 version = "0.0.1-SNAPSHOT"
-description = "Chirp Backend"
+description = "Oris Backend"
 
 dependencies {
 	implementation(projects.chat)

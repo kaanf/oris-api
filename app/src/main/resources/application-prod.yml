@@ -12,7 +12,7 @@ jwt:
 nginx:
   require-proxy: true
 
-chirp:
+oris:
   email:
     url: "http://localhost:8080"
   rate-limit:

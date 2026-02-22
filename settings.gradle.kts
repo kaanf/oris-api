@@ -9,7 +9,7 @@ pluginManagement {
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-rootProject.name = "chirp"
+rootProject.name = "oris"
 
 include("app")
 include("user")

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: chirp
+    name: oris
 
   data:
     redis:
@@ -75,7 +75,7 @@ jwt:
   secret: ${JWT_SECRET_BASE64}
   expiration-minutes: 15
 
-chirp:
+oris:
   email:
     from: mail@kaanf.com
     verification:
@@ -92,3 +92,6 @@ nginx:
 supabase:
   url: ${SUPABASE_URL:https://mpprwdhncynofnragmoc.supabase.co}
   service-key: ${SUPABASE_SERVICE_KEY}
+
+firebase:
+  credentials-path: "classpath:firebase-credentials/oris-firebase-adminsdk.json"
