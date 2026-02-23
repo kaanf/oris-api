@@ -10,6 +10,7 @@ import com.kaanf.oris.api.dto.websocket.OutgoingWebSocketMessageType
 import com.kaanf.oris.api.dto.websocket.ProfilePictureUpdateDto
 import com.kaanf.oris.api.dto.websocket.SendMessageDto
 import com.kaanf.oris.api.mapper.toChatMessageDto
+import com.kaanf.oris.domain.event.ChatCreatedEvent
 import com.kaanf.oris.domain.event.ChatParticipantLeftEvent
 import com.kaanf.oris.domain.event.ChatParticipantsJoinedEvent
 import com.kaanf.oris.domain.event.MessageDeletedEvent
@@ -159,18 +160,17 @@ class ChatWebSocketHandler(
         )
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    fun onJoinChat(event: ChatParticipantsJoinedEvent) {
+    private fun updateChatForUsers(chatId: ChatId, userIds: List<UserId>) {
         connectionLock.write {
-            event.userIds.forEach { userId ->
+            userIds.forEach { userId ->
                 userChatIds.compute(userId) { _, chatIds ->
                     (chatIds ?: mutableSetOf()).apply {
-                        add(event.chatId)
+                        add(chatId)
                     }
                 }
 
                 userToSessions[userId]?.forEach { sessionId ->
-                    chatToSessions.compute(event.chatId) { _, sessions ->
+                    chatToSessions.compute(chatId) { _, sessions ->
                         (sessions ?: mutableSetOf()).apply {
                             add(sessionId)
                         }
@@ -178,6 +178,22 @@ class ChatWebSocketHandler(
                 }
             }
         }
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onChatCreated(event: ChatCreatedEvent) {
+        updateChatForUsers(
+            chatId = event.chatId,
+            userIds = event.participantIds
+        )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onJoinChat(event: ChatParticipantsJoinedEvent) {
+        updateChatForUsers(
+            chatId = event.chatId,
+            userIds = event.userIds.toList()
+        )
 
         broadcastToChat(
             chatId = event.chatId,
