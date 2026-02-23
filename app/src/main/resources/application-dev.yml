@@ -1,0 +1,22 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+  mail:
+    host: sandbox.smtp.mailtrap.io
+    username: 0afd50cd2a21fa
+
+jwt:
+  expiration-minutes: 1000
+
+nginx:
+  require-proxy: false
+
+oris:
+  email:
+    url: "http://localhost:8080"
+  rate-limit:
+    ip:
+      apply-limit: false
+  web-socket:
+    allowed-origin: "http://localhost:8080"

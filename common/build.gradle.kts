@@ -1,9 +1,6 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.spring)
-    alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
-    alias(libs.plugins.kotlin.jpa)
+    id("java-library")
+    id("oris.kotlin-common")
 }
 
 group = "com.kaanf"
@@ -16,11 +13,17 @@ repositories {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
-}
+    api(libs.kotlin.reflect)
+    api(libs.jackson.module.kotlin)
 
-kotlin {
-    jvmToolchain(21)
+    implementation(libs.spring.boot.starter.amqp)
+    implementation(libs.spring.boot.starter.security)
+
+    implementation(libs.jwt.api)
+    runtimeOnly(libs.jwt.impl)
+    runtimeOnly(libs.jwt.jackson)
+
+    testImplementation(kotlin("test"))
 }
 
 tasks.test {

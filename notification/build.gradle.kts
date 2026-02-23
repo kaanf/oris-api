@@ -1,9 +1,7 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.spring)
-    alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
-    alias(libs.plugins.kotlin.jpa)
+    id("java-library")
+    id("oris.spring-boot-service")
+    kotlin("plugin.jpa")
 }
 
 group = "com.kaanf"
@@ -16,11 +14,20 @@ repositories {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
-}
+    implementation(projects.common)
 
-kotlin {
-    jvmToolchain(21)
+    implementation(libs.firebase.admin.sdk)
+
+    implementation(libs.spring.boot.starter.web)
+    implementation(libs.spring.boot.starter.mail)
+    implementation(libs.spring.boot.starter.amqp)
+    implementation(libs.spring.boot.starter.thymeleaf)
+    implementation(libs.spring.boot.starter.validation)
+    implementation(libs.spring.boot.starter.data.jpa)
+
+    runtimeOnly(libs.postgresql)
+
+    testImplementation(kotlin("test"))
 }
 
 tasks.test {

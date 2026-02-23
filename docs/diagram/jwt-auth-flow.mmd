@@ -1,0 +1,31 @@
+%% JWT Auth Flow (Access + Refresh)
+flowchart TD
+  A[Client] -->|POST /api/auth/login| B[AuthController]
+  B --> C[AuthService.login]
+  C -->|validate credentials| D[UserRepository]
+  C -->|create tokens| E[JwtService]
+  E -->|access token| F[Access Token]
+  E -->|refresh token| G[Refresh Token]
+  C -->|store hashed refresh| H[RefreshTokenRepository]
+  C --> I[AuthenticatedUserDto]
+  I -->|access+refresh| A
+
+  %% Access token usage
+  A -->|API request + Authorization: Bearer access| J[JWT Auth Filter]
+  J -->|validate access token| E
+  J -->|set user context| K[Protected Controller]
+
+  %% Refresh flow
+  A -->|POST /api/auth/refresh + refresh token| L[AuthController]
+  L --> M[AuthService.refresh]
+  M -->|validate refresh token| E
+  M -->|verify stored hashed| H
+  M -->|rotate refresh token| H
+  M -->|issue new access+refresh| E
+  M --> N[AuthenticatedUserDto]
+  N --> A
+
+  %% Logout
+  A -->|POST /api/auth/logout + refresh token| O[AuthController]
+  O --> P[AuthService.logout]
+  P -->|delete stored hashed| H

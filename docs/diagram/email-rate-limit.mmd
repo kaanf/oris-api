@@ -1,0 +1,23 @@
+sequenceDiagram
+  autonumber
+  participant Client
+  participant AuthController
+  participant EmailRateLimiter
+  participant Redis
+
+
+  Client->>AuthController: POST /api/auth/resend-verification or /forgot-password
+  AuthController->>EmailRateLimiter: withRateLimit(email) { action }
+  EmailRateLimiter->>Redis: EVAL email_rate_limit.lua (rateLimitKey, attemptCountKey)
+
+  alt Rate limited
+    Redis-->>EmailRateLimiter: { -1, ttl }
+    EmailRateLimiter-->>AuthController: throw RateLimitException(ttl)
+    AuthController-->>Client: 429 Too Many Requests
+  else Allowed
+    Redis-->>EmailRateLimiter: { attemptCount, 0 }
+    EmailRateLimiter-->>AuthController: proceed with action
+    AuthController-->>Client: 200 OK (or action result)
+  end
+
+  Note over Redis: Backoff windows are 60s, 300s, 3600s

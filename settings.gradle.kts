@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         gradlePluginPortal()
         maven { url = uri("https://repo.spring.io/milestone") }
@@ -6,7 +7,9 @@ pluginManagement {
     }
 }
 
-rootProject.name = "chirp"
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
+rootProject.name = "oris"
 
 include("app")
 include("user")
