@@ -42,7 +42,7 @@ spring:
 
   mail:
     port: 587
-    password: ${MAIL_TRAP_PASSWORD}
+    password: ${MAILGUN_PASSWORD}
     properties:
       mail:
         smtp:
@@ -95,3 +95,6 @@ supabase:
 
 firebase:
   credentials-path: "classpath:firebase-credentials/oris-firebase-adminsdk.json"
+
+server:
+  port: 8095
