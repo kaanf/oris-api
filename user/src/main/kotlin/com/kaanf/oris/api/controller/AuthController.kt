@@ -9,6 +9,7 @@ import com.kaanf.oris.api.dto.RefreshRequest
 import com.kaanf.oris.api.dto.RegisterRequest
 import com.kaanf.oris.api.dto.ResetPasswordRequest
 import com.kaanf.oris.api.dto.UserDto
+import com.kaanf.oris.api.dto.UsernameRequest
 import com.kaanf.oris.api.mapper.toAuthenticatedUserDto
 import com.kaanf.oris.api.mapper.toUserDto
 import com.kaanf.oris.api.util.requestUserId
@@ -17,7 +18,6 @@ import com.kaanf.oris.service.AuthService
 import com.kaanf.oris.service.EmailVerificationService
 import com.kaanf.oris.service.PasswordResetService
 import jakarta.validation.Valid
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -51,6 +51,16 @@ class AuthController(
             email = request.email,
             password = request.password
         ).toAuthenticatedUserDto()
+    }
+
+    @PostMapping("/username-exists")
+    fun usernameExists(@Valid @RequestBody request: UsernameRequest): Boolean {
+        return authService.existsByUsername(request.username)
+    }
+
+    @PostMapping("/email-exists")
+    fun emailExists(@Valid @RequestBody request: EmailRequest): Boolean {
+        return authService.existsByEmail(request.email)
     }
 
     @PostMapping("/refresh")
