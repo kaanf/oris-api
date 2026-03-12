@@ -1,7 +1,5 @@
 package com.kaanf.oris.service
 
-import com.kaanf.oris.api.dto.ChatMessageDto
-import com.kaanf.oris.api.mapper.toChatMessageDto
 import com.kaanf.oris.domain.event.MessageDeletedEvent
 import com.kaanf.oris.domain.event.chat.ChatEvent
 import com.kaanf.oris.domain.exception.ChatNotFoundException
@@ -20,11 +18,10 @@ import com.kaanf.oris.infra.db.repository.ChatRepository
 import com.kaanf.oris.infra.message_queue.EventPublisher
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
+import java.util.UUID
 
 @Service
 class ChatMessageService(
@@ -32,7 +29,8 @@ class ChatMessageService(
     private val chatMessageRepository: ChatMessageRepository,
     private val chatParticipantRepository: ChatParticipantRepository,
     private val applicationEventPublisher: ApplicationEventPublisher,
-    private val eventPublisher: EventPublisher
+    private val eventPublisher: EventPublisher,
+    private val messageCache: MessageCacheEvictionHelper,
 ) {
     @Transactional
     @CacheEvict(
@@ -53,7 +51,7 @@ class ChatMessageService(
 
         val savedMessage = chatMessageRepository.saveAndFlush(
             ChatMessageEntity(
-                id = messageId,
+                id = messageId ?: UUID.randomUUID(),
                 content = content.trim(),
                 chatId = chatId,
                 chat = chat,
@@ -92,15 +90,6 @@ class ChatMessageService(
             )
         )
 
-        evictMessagesCache(message.chatId)
-    }
-
-
-    @CacheEvict(
-        value = ["messages"],
-        key = "#chatId"
-    )
-    fun evictMessagesCache(chatId: ChatId) {
-        // NO-OP, let Spring handle the cache evict.
+        messageCache.evictMessagesCache(message.chatId)
     }
 }

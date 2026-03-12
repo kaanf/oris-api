@@ -1,8 +1,8 @@
 package com.kaanf.oris.service
 
-import com.kaanf.oris.api.dto.ChatDto
 import com.kaanf.oris.api.dto.ChatMessageDto
 import com.kaanf.oris.api.mapper.toChatMessageDto
+import com.kaanf.oris.domain.event.ChatCreatedEvent
 import com.kaanf.oris.domain.event.ChatParticipantLeftEvent
 import com.kaanf.oris.domain.event.ChatParticipantsJoinedEvent
 import com.kaanf.oris.domain.exception.ChatNotFoundException
@@ -86,12 +86,19 @@ class ChatService(
         val creator = chatParticipantRepository.findByIdOrNull(creatorId)
             ?: throw ChatParticipantNotFoundException(creatorId)
 
-        return chatRepository.save(
+        return chatRepository.saveAndFlush(
             ChatEntity(
                 creator = creator,
                 participants = setOf(creator) + otherParticipants
             )
-        ).toChat(lastMessage = null)
+        ).toChat(lastMessage = null).also { entity ->
+            applicationEventPublisher.publishEvent(
+                ChatCreatedEvent(
+                    chatId = entity.id,
+                    participantIds = entity.participants.map { it.userId }
+                )
+            )
+        }
     }
 
     @Transactional

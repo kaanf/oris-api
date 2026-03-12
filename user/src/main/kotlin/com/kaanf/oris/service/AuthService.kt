@@ -93,6 +93,14 @@ class AuthService(
         } ?: throw UserNotFoundException()
     }
 
+    fun existsByUsername(username: String): Boolean {
+        return userRepository.existsByUsername(username.trim())
+    }
+
+    fun existsByEmail(email: String): Boolean {
+        return userRepository.existsByEmail(email.trim())
+    }
+
     @Transactional
     fun refresh(refreshToken: String): AuthenticatedUser {
         if (!jwtService.validateRefreshToken(refreshToken)) {
