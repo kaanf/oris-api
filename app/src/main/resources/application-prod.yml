@@ -14,9 +14,9 @@ nginx:
 
 oris:
   email:
-    url: "http://localhost:8080"
+    url: "https://api.kaanf.com"
   rate-limit:
     ip:
       apply-limit: true
   web-socket:
-    allowed-origin: "http://localhost:8080"
+    allowed-origin: "https://api.kaanf.com"
