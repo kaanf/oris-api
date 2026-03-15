@@ -14,7 +14,7 @@ nginx:
 
 oris:
   email:
-    url: "http://localhost:8080"
+    url: "oris//api.kaanf.com"
   rate-limit:
     ip:
       apply-limit: false
